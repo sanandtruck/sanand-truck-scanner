@@ -1,156 +1,129 @@
-<script>
-        const API_BASE = "https://sanand-truck.onrender.com";
-        let html5QrCode = null;
-        let isScanning = false;
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SanAnd TRUCK // Scanner & Lookup</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050d0e">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
-        function switchTab(tab) {
-            document.getElementById('tab-scan').classList.toggle('active', tab === 'scan');
-            document.getElementById('tab-lookup').classList.toggle('active', tab === 'lookup');
-            document.getElementById('view-scan').style.display = tab === 'scan' ? 'block' : 'none';
-            document.getElementById('view-lookup').style.display = tab === 'lookup' ? 'block' : 'none';
-            if (tab !== 'scan') stopCamera();
+    <!-- Librerie Scanner Fotocamera e Generatore Barcode -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
+    <style>
+        :root {
+            --bg-abyssal: #040b0c;
+            --bg-petrol: #09181a;
+            --card-bg: rgba(11, 28, 30, 0.85);
+            --neon-cyan: #2ee6d6;
+            --neon-cyan-dim: rgba(46, 230, 214, 0.22);
+            --neon-cyan-glow: rgba(46, 230, 214, 0.55);
+            --text-main: #e6f7f6;
+            --text-muted: #7aa3a0;
         }
 
-        async function startCamera() {
-            const readerDiv = document.getElementById("reader");
-            readerDiv.innerHTML = `
-                <div style="padding: 20px; text-align: center;">
-                    <button id="btn-start-cam" class="btn-neon" onclick="activateRearCamera()">
-                        📷 Attiva Fotocamera Posteriore
-                    </button>
-                    <p id="cam-error" style="color: #fb7185; font-size: 0.8rem; margin-top: 10px;"></p>
-                </div>
-            `;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
-        async function activateRearCamera() {
-            const errText = document.getElementById("cam-error");
-            const btn = document.getElementById("btn-start-cam");
-            if (btn) btn.innerText = "Apertura fotocamera in corso...";
-
-            try {
-                // Verifica supporto browser
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error("Il browser blocca la fotocamera. Apri il link con Chrome o Safari (non dentro WhatsApp/Telegram).");
-                }
-
-                html5QrCode = new Html5Qrcode("reader");
-                isScanning = true;
-
-                await html5QrCode.start(
-                    { facingMode: "environment" }, // Forza fotocamera posteriore
-                    {
-                        fps: 12,
-                        qrbox: { width: 260, height: 150 },
-                        aspectRatio: 1.5
-                    },
-                    (decodedText) => {
-                        if (navigator.vibrate) navigator.vibrate(100);
-                        stopCamera().then(() => processSupplierCode(decodedText));
-                    },
-                    (errorMessage) => {
-                        // Ignora errori continui di frame vuoti
-                    }
-                );
-            } catch (err) {
-                isScanning = false;
-                startCamera();
-                setTimeout(() => {
-                    const e = document.getElementById("cam-error");
-                    if (e) e.innerText = "⚠️ " + (err.message || "Permesso fotocamera negato. Controlla le impostazioni del browser.");
-                }, 100);
-            }
+        body {
+            background-color: var(--bg-abyssal);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #0e2c30 0%, transparent 60%),
+                radial-gradient(circle at 85% 90%, #071e21 0%, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
         }
 
-        async function stopCamera() {
-            if (html5QrCode && isScanning) {
-                try {
-                    await html5QrCode.stop();
-                    html5QrCode.clear();
-                } catch (e) {}
-                isScanning = false;
-            }
+        .container {
+            width: 100%;
+            max-width: 460px;
         }
 
-        async function processSupplierCode(code) {
-            if (!code || !code.trim()) return;
-            try {
-                const res = await fetch(`${API_BASE}/api/barcode/generate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ supplier_barcode: code.trim() })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || "Errore server");
-
-                document.getElementById("res-supplier").innerText = data.supplier;
-                document.getElementById("res-supplier-code").innerText = "Tracking Originale: " + data.supplier_barcode;
-                document.getElementById("res-customer").innerText = data.customer;
-                document.getElementById("res-address").innerText = data.address;
-
-                JsBarcode("#company-barcode", data.sanand_barcode, {
-                    format: "CODE128",
-                    lineColor: "#000000",
-                    width: 2.2,
-                    height: 75,
-                    displayValue: true,
-                    fontSize: 16,
-                    fontOptions: "bold"
-                });
-
-                document.getElementById("scanner-area").style.display = "none";
-                document.getElementById("generated-area").style.display = "block";
-            } catch (err) {
-                alert("Errore collegamento API: " + err.message);
-                startCamera();
-            }
+        /* --- LOGO METALLICO LUCIDO ANIMATO --- */
+        .brand-header {
+            text-align: center;
+            padding: 10px 0 18px;
         }
 
-        function resetScanView() {
-            document.getElementById("generated-area").style.display = "none";
-            document.getElementById("scanner-area").style.display = "block";
-            document.getElementById("manual-supplier-code").value = "";
-            activateRearCamera();
+        .logo-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 110px;
+            height: 75px;
+            filter: drop-shadow(0 0 10px rgba(46, 230, 214, 0.45));
+            animation: logoPulse 3.5s ease-in-out infinite;
         }
 
-        async function lookupCode() {
-            const code = document.getElementById("lookup-input").value.trim();
-            const box = document.getElementById("lookup-result");
-            if (!code) return;
-
-            box.innerHTML = '<p style="color:var(--neon-teal); font-size:0.85rem;">Ricerca nel database...</p>';
-            try {
-                const res = await fetch(`${API_BASE}/api/barcode/lookup/${encodeURIComponent(code)}`);
-                const d = await res.json();
-                if (!res.ok) {
-                    box.innerHTML = `<p style="color:#fb7185; font-size:0.85rem;">❌ ${d.detail}</p>`;
-                    return;
-                }
-                box.innerHTML = `
-                    <div class="detail-row">
-                        <div class="detail-label">Codice SanAnd TRUCK</div>
-                        <strong style="color:var(--neon-teal); font-size:1rem;">${d.sanand_barcode || 'Non ancora generato'}</strong>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Fornitore & Codice Originale</div>
-                        <strong>${d.supplier || 'N/D'}</strong> — <span>${d.supplier_barcode}</span>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Mittente</div>
-                        <div>${d.sender_name || 'N/D'}</div>
-                        <div style="color:var(--text-secondary); font-size:0.78rem;">${d.sender_address || ''}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Destinatario</div>
-                        <strong>${d.customer_name}</strong> ${d.customer_phone ? '• ' + d.customer_phone : ''}
-                        <div style="color:var(--text-secondary); font-size:0.78rem;">${d.delivery_address}</div>
-                    </div>
-                `;
-            } catch (e) {
-                box.innerHTML = '<p style="color:#fb7185; font-size:0.85rem;">Errore di connessione al server.</p>';
-            }
+        @keyframes logoPulse {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(46, 230, 214, 0.4)); }
+            50% { filter: drop-shadow(0 0 18px rgba(46, 230, 214, 0.85)); }
         }
 
-        // Mostra subito il pulsante di attivazione fotocamera
-        startCamera();
-    </script>
+        .logo-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .gear-spin {
+            transform-origin: 55px 37px;
+            animation: slowRotate 18s linear infinite;
+        }
+
+        @keyframes slowRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .brand-title {
+            font-size: 1.55rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+            background: linear-gradient(90deg, #7aa3a0 0%, #ffffff 30%, #2ee6d6 50%, #ffffff 70%, #7aa3a0 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: metalShine 3.2s linear infinite;
+        }
+
+        @keyframes metalShine {
+            to { background-position: 200% center; }
+        }
+
+        .brand-subtitle {
+            font-size: 0.72rem;
+            letter-spacing: 2.5px;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            margin-top: 2px;
+            opacity: 0.85;
+        }
+
+        /* --- NAVIGAZIONE TAB --- */
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: rgba(5, 13, 14, 0.9);
+            padding: 5px;
+            border-radius: 12px;
+            border: 1px solid var(--neon-cyan-dim);
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px;
