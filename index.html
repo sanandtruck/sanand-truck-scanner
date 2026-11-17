@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SanAnd TRUCK // Scanner & Lookup</title>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#050d0e">
-    <link rel="apple-touch-icon" href="icon-192.png">
 
     <!-- Librerie Scanner Fotocamera e Generatore Barcode -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -22,6 +20,8 @@
             --neon-cyan-glow: rgba(46, 230, 214, 0.55);
             --text-main: #e6f7f6;
             --text-muted: #7aa3a0;
+            --green: #10b981;
+            --red: #ef4444;
         }
 
         * {
@@ -29,6 +29,7 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -49,81 +50,148 @@
             max-width: 460px;
         }
 
-        /* --- LOGO METALLICO LUCIDO ANIMATO --- */
         .brand-header {
             text-align: center;
             padding: 10px 0 18px;
-        }
-
-        .logo-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 110px;
-            height: 75px;
-            filter: drop-shadow(0 0 10px rgba(46, 230, 214, 0.45));
-            animation: logoPulse 3.5s ease-in-out infinite;
-        }
-
-        @keyframes logoPulse {
-            0%, 100% { filter: drop-shadow(0 0 8px rgba(46, 230, 214, 0.4)); }
-            50% { filter: drop-shadow(0 0 18px rgba(46, 230, 214, 0.85)); }
-        }
-
-        .logo-svg {
-            width: 100%;
-            height: 100%;
-            overflow: visible;
-        }
-
-        .gear-spin {
-            transform-origin: 55px 37px;
-            animation: slowRotate 18s linear infinite;
-        }
-
-        @keyframes slowRotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
 
         .brand-title {
             font-size: 1.55rem;
             font-weight: 800;
             letter-spacing: 1.5px;
-            margin-top: 4px;
-            background: linear-gradient(90deg, #7aa3a0 0%, #ffffff 30%, #2ee6d6 50%, #ffffff 70%, #7aa3a0 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: metalShine 3.2s linear infinite;
-        }
-
-        @keyframes metalShine {
-            to { background-position: 200% center; }
+            color: var(--neon-cyan);
+            margin-bottom: 4px;
         }
 
         .brand-subtitle {
             font-size: 0.72rem;
             letter-spacing: 2.5px;
-            color: var(--neon-cyan);
-            text-transform: uppercase;
-            margin-top: 2px;
-            opacity: 0.85;
-        }
-
-        /* --- NAVIGAZIONE TAB --- */
-        .tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            background: rgba(5, 13, 14, 0.9);
-            padding: 5px;
-            border-radius: 12px;
-            border: 1px solid var(--neon-cyan-dim);
-            margin-bottom: 16px;
-        }
-
-        .tab-btn {
-            background: transparent;
-            border: none;
             color: var(--text-muted);
-            padding: 10px;
+            text-transform: uppercase;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--neon-cyan-dim);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            background: #020607;
+            border: 1px solid var(--neon-cyan-dim);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan-dim);
+        }
+
+        button {
+            background: var(--neon-cyan);
+            color: #000;
+            border: none;
+            width: 100%;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: all 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .result-box {
+            margin-top: 14px;
+            background: rgba(2, 6, 7, 0.9);
+            border: 1px solid var(--neon-cyan-dim);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="brand-header">
+        <div class="brand-title">SanAnd TRUCK</div>
+        <div class="brand-subtitle">Scanner & Database Lookup</div>
+    </div>
+
+    <div class="card">
+        <div class="form-group">
+            <label>Inserisci o Scansiona Codice Pacco</label>
+            <input type="text" id="searchCode" placeholder="Es. LP003770864PP o InPost ID">
+        </div>
+        <button onclick="lookupPackage()">🔍 Cerca nel Database</button>
+
+        <div id="resultArea" class="result-box" style="display:none;">
+            <div><b>Indirizzo:</b> <span id="resAddress">-</span></div>
+            <div><b>Città:</b> <span id="resCity">-</span></div>
+            <div><b>Telefono:</b> <span id="resPhone">-</span></div>
+            <div><b>Contrassegno:</b> <span id="resCash" style="color:var(--red)">-</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function lookupPackage() {
+    let code = document.getElementById('searchCode').value.trim();
+    if (!code) {
+        alert("Inserisci un codice valido.");
+        return;
+    }
+
+    try {
+        let res = await fetch(`https://sanand-truck.onrender.com/api/orders/search?code=${encodeURIComponent(code)}`);
+        if (res.ok) {
+            let data = await res.json();
+            if (data && data.found) {
+                document.getElementById('resAddress').textContent = data.address || "";
+                document.getElementById('resCity').textContent = data.city || "";
+                document.getElementById('resPhone').textContent = data.phone || "N/D";
+                document.getElementById('resCash').textContent = `€${(data.cash || 0).toFixed(2)}`;
+                document.getElementById('resultArea').style.display = 'block';
+            } else {
+                alert("❌ Pacco non trovato nel database centrale.");
+                document.getElementById('resultArea').style.display = 'none';
+            }
+        } else {
+            alert("Errore di connessione al backend.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Impossibile contattare il server.");
+    }
+}
+</script>
+
+</body>
+</html>
